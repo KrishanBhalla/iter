@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
+	"github.com/KrishanBhalla/iter/internal/websocket"
 	"github.com/KrishanBhalla/iter/models"
 	"github.com/KrishanBhalla/iter/rand"
+	"github.com/google/uuid"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 )
@@ -52,12 +55,10 @@ func main() {
 }
 
 func setupRoutes(r *mux.Router) {
-// 	// Websocket
-// 	pool := websocket.NewChannelPool()
-// 	go pool.Start()
-// 	serveWsFunc := func(w http.ResponseWriter, r *http.Request) {
-// 		serveWs(pool, w, r)
-// 	}
+	// Websocket
+	r.PathPrefix("/ws").HandlerFunc(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		serveWs(w, r)
+	}))
 
 	// // Handlers ---------
 	// // Static
@@ -71,7 +72,20 @@ func setupRoutes(r *mux.Router) {
 	// r.HandleFunc("/logout", requireUserMw.ApplyFn(usersC.Logout)).Methods("POST")
 	// r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 
-	// r.PathPrefix("/ws").HandlerFunc(http.HandlerFunc(serveWsFunc))
+}
+
+func serveWs(w http.ResponseWriter, r *http.Request) {
+
+	log.Println("WebSocket Endpoint Hit")
+	conn, err := websocket.Upgrade(w, r)
+	if err != nil {
+		fmt.Fprintf(w, "%+V\n", err)
+	}
+	client := &websocket.Client{
+		ID:   uuid.NewString(),
+		Conn: conn,
+	}
+	client.Read()
 }
 
 func must(err error) {
