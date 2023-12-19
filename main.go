@@ -20,17 +20,13 @@ func isProd() bool {
 	return false
 }
 
-func path() string {
-	return "defaultDatabase"
-}
-
 func main() {
 
 	r := mux.NewRouter()
 
 	services, err := models.NewServices(
-		models.WithBadger(path()),
 		models.WithUser(hmacKey, userPwPepper),
+		models.WithContent(0.8),
 	)
 	defer services.Close()
 	// err = services.DestructiveReset()
@@ -56,27 +52,26 @@ func main() {
 }
 
 func setupRoutes(r *mux.Router) {
-	wsPath := "/ws/"
-	// Websocket
-	pool := websocket.NewChannelPool()
-	go pool.Start()
-	serveWsFunc := func(w http.ResponseWriter, r *http.Request) {
-		serveWs(pool, w, r)
-	}
+// 	// Websocket
+// 	pool := websocket.NewChannelPool()
+// 	go pool.Start()
+// 	serveWsFunc := func(w http.ResponseWriter, r *http.Request) {
+// 		serveWs(pool, w, r)
+// 	}
 
-	// Handlers ---------
-	// Static
-	r.Handle("/", staticC.Home)
-	r.Handle("/home", staticC.Home)
-	r.Handle("/contact", staticC.Contact)
+	// // Handlers ---------
+	// // Static
+	// r.Handle("/", staticC.Home)
+	// r.Handle("/home", staticC.Home)
+	// r.Handle("/contact", staticC.Contact)
 
-	// Users
-	r.Handle("/signup", usersC.SignupView).Methods("GET")
-	r.HandleFunc("/signup", usersC.CreateOrLogin).Methods("POST")
-	r.HandleFunc("/logout", requireUserMw.ApplyFn(usersC.Logout)).Methods("POST")
-	r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
+	// // Users
+	// r.Handle("/signup", usersC.SignupView).Methods("GET")
+	// r.HandleFunc("/signup", usersC.CreateOrLogin).Methods("POST")
+	// r.HandleFunc("/logout", requireUserMw.ApplyFn(usersC.Logout)).Methods("POST")
+	// r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")
 
-	r.PathPrefix("/ws").HandlerFunc(http.HandlerFunc(serveWsFunc))
+	// r.PathPrefix("/ws").HandlerFunc(http.HandlerFunc(serveWsFunc))
 }
 
 func must(err error) {

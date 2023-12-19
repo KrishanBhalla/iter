@@ -10,16 +10,22 @@ import (
 )
 
 const (
-	Model       = "text-embedding-ada-002"
-	EndpointURL = "https://api.openai.com/v1/embeddings"
+	EmbeddingModel    = "text-embedding-ada-002"
+	EmbeddingEndpoint = "https://api.openai.com/v1/embeddings"
 )
 
-type EmbeddingService struct {
+type EmbeddingService interface {
+	GetEmbedding(message string) ([]float64, error)
 }
 
-func (service *EmbeddingService) GetEmbedding(message string) ([]float64, error) {
+type Ada002 struct {
+}
 
-	embeddingRequest := embeddingRequest{Model: Model, Input: message, EncodingFormat: "float"}
+var _ EmbeddingService = &Ada002{}
+
+func (service *Ada002) GetEmbedding(message string) ([]float64, error) {
+
+	embeddingRequest := embeddingRequest{Model: EmbeddingModel, Input: message, EncodingFormat: "float"}
 	response, err := getEmbeddings(embeddingRequest)
 	if err != nil {
 		return nil, err
@@ -53,7 +59,7 @@ func getEmbeddings(request embeddingRequest) (*embeddingResponse, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", EndpointURL, bytes.NewBuffer(requestJSON))
+	req, err := http.NewRequest("POST", EmbeddingEndpoint, bytes.NewBuffer(requestJSON))
 	if err != nil {
 		return nil, err
 	}

@@ -18,14 +18,12 @@ func NewServices(cfgs ...ServicesConfig) (*Services, error) {
 	return &s, nil
 }
 
-// Close closes the database connection.
+// Close closes the database connections.
 func (s *Services) Close() error {
 	err := s.User.CloseDB()
 	if err != nil {
 		return err
 	}
 	err = s.Content.CloseDB()
-	if err != nil {
-		return err
-	}
+	return err
 }

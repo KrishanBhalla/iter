@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const (
@@ -62,7 +63,7 @@ func (e modelError) Error() string {
 
 func (e modelError) Public() string {
 	s := strings.Replace(string(e), "models: ", "", 1)
-	return cases.Title(s).String()
+	return cases.Title(language.BritishEnglish).String(s)
 }
 
 // privateError is a string so that some errors could be made constant
