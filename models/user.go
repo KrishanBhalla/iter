@@ -36,6 +36,7 @@ type UserDB interface {
 	Create(user *User) error
 	Update(user *User) error
 	Delete(email string) error
+	DbCloser
 }
 
 // Define userDB and ensure it implements UserDB
@@ -112,6 +113,10 @@ func (udb *userDB) Delete(email string) error {
 		return err
 	})
 	return err
+}
+
+func (udb *userDB) CloseDB() error {
+	return udb.db.Close()
 }
 
 // ------------------------------------------------

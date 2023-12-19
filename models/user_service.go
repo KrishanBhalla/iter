@@ -29,9 +29,9 @@ type userService struct {
 // to the db.
 func NewUserService(db *badger.DB, hmacKey, pepper string) UserService {
 
-	ug := &userDB{db}
+	udb := &userDB{db}
 	hmac := hash.NewHMAC(hmacKey)
-	uv := NewUserValidator(ug, hmac, pepper)
+	uv := NewUserValidator(udb, hmac, pepper)
 	return &userService{
 		UserDB: uv,
 		pepper: pepper,

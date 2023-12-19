@@ -32,3 +32,31 @@ func get(db *badger.DB, key string, dst interface{}) error {
 	}
 	return json.Unmarshal(data, dst)
 }
+
+func getAll(db *badger.DB, dst interface{}) error {
+	data := make([]byte, 0)
+	err := db.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+			err := item.Value(func(v []byte) error {
+				data = append(data, v...)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	json.Unmarshal(data, dst)
+	return nil
+}
+
+type DbCloser interface {
+	CloseDB() error
+}

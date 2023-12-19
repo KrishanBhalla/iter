@@ -1,6 +1,10 @@
 package models
 
-import "strings"
+import (
+	"strings"
+
+	"golang.org/x/text/cases"
+)
 
 const (
 	// ErrNotFound is returned when a resource cannot be found
@@ -58,7 +62,7 @@ func (e modelError) Error() string {
 
 func (e modelError) Public() string {
 	s := strings.Replace(string(e), "models: ", "", 1)
-	return strings.Title(s)
+	return cases.Title(s).String()
 }
 
 // privateError is a string so that some errors could be made constant
