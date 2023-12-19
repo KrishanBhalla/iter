@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/KrishanBhalla/iter/hash"
+	"github.com/dgraph-io/badger"
 	"golang.org/x/crypto/bcrypt"
 )
 

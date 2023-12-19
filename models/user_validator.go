@@ -112,22 +112,22 @@ func (uv *userValidator) Update(user *User) error {
 }
 
 // Delete will delete the user with given ID
-func (uv *userValidator) Delete(id uint) error {
+func (uv *userValidator) Delete(email string) error {
 	var user User
-	user.ID = id
-	err := runUserValFuncs(&user, uv.userIDExists)
+	user.Email = email
+	err := runUserValFuncs(&user, uv.userEmailExists)
 	if err != nil {
 		return err
 	}
-	return uv.UserDB.Delete(id)
+	return uv.UserDB.Delete(email)
 }
 
 // -------------------------------------------------------------------------------------
 // User --------------------------------------------------------------------------------
 // -------------------------------------------------------------------------------------
 
-func (uv *userValidator) userIDExists(user *User) error {
-	_, err := uv.UserDB.ByID(user.ID)
+func (uv *userValidator) userEmailExists(user *User) error {
+	_, err := uv.UserDB.ByEmail(user.Email)
 	if err != nil {
 		return ErrUserNotFound
 	}
@@ -171,7 +171,7 @@ func (uv *userValidator) emailIsAvailable(user *User) error {
 		return err
 
 	}
-	if user.ID != existing.ID {
+	if user.Email != existing.Email {
 		return ErrEmailAlreadyTaken
 	}
 	return nil

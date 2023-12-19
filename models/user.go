@@ -1,6 +1,10 @@
 package models
 
-import "github.com/dgraph-io/badger"
+import (
+	"encoding/json"
+
+	"github.com/dgraph-io/badger"
+)
 
 // User implements the User table for
 // storing account data - this consists of
@@ -24,8 +28,6 @@ type User struct {
 // For single user queries any error by ErrNotFound should probably
 // result in a 500 error
 type UserDB interface {
-	// Methods for querying for single users
-	ByID(id uint) (*User, error)
 	ByEmail(email string) (*User, error)
 	// For cookies
 	ByRemember(token string) (*User, error)
@@ -33,7 +35,7 @@ type UserDB interface {
 	// Methods for altering users
 	Create(user *User) error
 	Update(user *User) error
-	Delete(id uint) error
+	Delete(email string) error
 }
 
 // Define userDB and ensure it implements UserDB
@@ -43,57 +45,73 @@ type userDB struct {
 	db *badger.DB
 }
 
-// ByID returns an error if the user is not in the db
-// else it returns the user associated with the id
-func (udb *userDB) ByID(id uint) (*User, error) {
-	var userBytes = make([]byte)
-	err := udb.db.View(func(txn *badger.Tx) error {
-		user, err := txn.Get([]byte(id))
-		if err != nil {
-			return err
-		}
-		copy(userBytes, user)
-		return nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	
-	var user User
-	err := first(db, &user)
-	return safeReturnUser(&user, err)
-
-
 // ByEmail returns an error if the user is not in the db
 // else it returns the user associated with the email
 func (udb *userDB) ByEmail(email string) (*User, error) {
-	db := udb.db.Where("email = ?", email)
 	var user User
-	err := first(db, &user)
+	err := get(udb.db, email, user)
 	return safeReturnUser(&user, err)
 }
 
 // ByRemember returns an error if the user is not in the db
 // else it returns the user associated with the rememberHash
 func (udb *userDB) ByRemember(rememberHash string) (*User, error) {
-	db := udb.db.Where("remember_hash = ?", rememberHash)
+	var email string
+	err := get(udb.db, rememberHash, email)
+	if err != nil {
+		return nil, err
+	}
 	var user User
-	err := first(db, &user)
+	err = get(udb.db, email, user)
 	return safeReturnUser(&user, err)
 }
 
 // Create will create the provided user and backfill data
-// like the ID, CreatedAt and UpdatedAt fields.
 func (udb *userDB) Create(user *User) error {
-	return udb.db.Create(user).Error
+	return udb.Update(user)
 }
 
 func (udb *userDB) Update(user *User) error {
-	return udb.db.Save(&user).Error
+	err := udb.db.Update(func(txn *badger.Txn) error {
+		userBytes, err := json.Marshal(&user)
+		if err != nil {
+			return err
+		}
+		err = txn.Set([]byte(user.Email), userBytes)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	err = udb.db.Update(func(txn *badger.Txn) error {
+		if err != nil {
+			return err
+		}
+		err = txn.Set([]byte(user.RememberHash), []byte(user.Email))
+		return err
+	})
+	return err
 }
 
-func (udb *userDB) Delete(id uint) error {
-	return udb.db.Delete(&User{}, id).Error
+func (udb *userDB) Delete(email string) error {
+	err := udb.db.Update(func(txn *badger.Txn) error {
+		err := txn.Delete([]byte(email))
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	var user User
+	err = get(udb.db, email, user)
+	if err != nil {
+		return err
+	}
+	err = udb.db.Update(func(txn *badger.Txn) error {
+		err := txn.Delete([]byte(user.RememberHash))
+		return err
+	})
+	return err
 }
 
 // ------------------------------------------------
