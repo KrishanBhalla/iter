@@ -17,6 +17,9 @@
   * Integration with booking service (if I stick with this)
   * Geolocation
   * Instagram search?
+  * Stateful chat
+  * Map generation
+  * Saving the itinerary
  
 * Frontend
   * Home Page
