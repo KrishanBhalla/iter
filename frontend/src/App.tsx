@@ -8,25 +8,21 @@ import logo from './logo.svg';
 import './App.css';
 
 function App() {
-  const [chatHistory, setChatHistory] = useState<string[]>([])
+  const [lastMessage, setLastMessage] = useState<MessageEvent<string>>()
 
   useEffect(() => {
     const handleNewMessage = (msg: MessageEvent<string>) => {
-      setChatHistory((prevChatHistory) => [...prevChatHistory, msg.data]);
+      setLastMessage(() => msg);
     };
-
     connect(handleNewMessage);
-
-    // Clean up the WebSocket connection on component unmount
-    return () => {
-      // Close the WebSocket connection or perform cleanup if needed
-    };
+    return () => {};
   }, []); // Empty dependency array ensures the effect runs only once on mount
 
   const send = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       const target = event.target as HTMLInputElement
       sendMsg(target.value)
+      setLastMessage(() => new MessageEvent("message", {data: target.value, origin: "user"}))
       target.value = ""
       event.target = target
     }
@@ -35,7 +31,7 @@ function App() {
   return (
     <div className="App">
     <Header />
-    <ChatHistory chatHistory={chatHistory}/>
+    <ChatHistory lastMessage={lastMessage}/>
     <ChatInput send={send}/>
   </div>
   );

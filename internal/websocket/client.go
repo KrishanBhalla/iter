@@ -1,7 +1,9 @@
 package websocket
 
 import (
+	"bufio"
 	"log"
+	"os"
 
 	"github.com/KrishanBhalla/iter/internal/services"
 	"github.com/gorilla/websocket"
@@ -22,7 +24,8 @@ func (c *Client) Read() {
 	defer func() {
 		c.Conn.Close()
 	}()
-	chatService := services.GPT3{}
+	logger := log.New(bufio.NewWriter(os.Stdout), "Chat Service: ", log.LstdFlags)
+	chatService := services.GPT3{Logger: logger}
 	for {
 		messageType, p, err := c.Conn.ReadMessage()
 		if err != nil {

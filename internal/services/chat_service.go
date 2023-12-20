@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 const (
@@ -26,6 +25,7 @@ type ChatService interface {
 }
 
 type GPT3 struct {
+	Logger *log.Logger
 }
 
 var _ ChatService = &GPT3{}
@@ -40,7 +40,7 @@ func (service *GPT3) GetChatCompletion(message string) (string, error) {
 	messages[1] = chatMessage{USER_ROLE, message}
 
 	chatRequest := chatRequest{Model: LanguageModel, Messages: messages, Stream: false}
-	response, err := getChatCompletion(chatRequest)
+	response, err := getChatCompletion(chatRequest, service.Logger)
 	if err != nil {
 		return "", err
 	}
@@ -58,9 +58,9 @@ func (service *GPT3) GetChatCompletionStream(message string, receiver chan strin
 		SYSTEM_PROMPT,
 	}
 	messages[1] = chatMessage{USER_ROLE, message}
-	log.Println("Ready to get chat completion")
+	service.Logger.Println("Ready to get chat completion")
 	chatRequest := chatRequest{Model: LanguageModel, Messages: messages, Stream: true}
-	go getChatCompletionStream(chatRequest, receiver)
+	go getChatCompletionStream(chatRequest, receiver, service.Logger)
 	return nil
 }
 
@@ -118,7 +118,7 @@ type chatMessage struct {
 	Content string `json:"content"`
 }
 
-func getChatCompletion(request chatRequest) (*chatResponse, error) {
+func getChatCompletion(request chatRequest, logger *log.Logger) (*chatResponse, error) {
 	client := &http.Client{}
 
 	requestJSON, err := json.Marshal(request)
@@ -158,18 +158,19 @@ func getChatCompletion(request chatRequest) (*chatResponse, error) {
 	return &chatResponse, nil
 }
 
-func getChatCompletionStream(request chatRequest, receiver chan string) error {
+func getChatCompletionStream(request chatRequest, receiver chan string, logger *log.Logger) error {
 	client := &http.Client{}
+	defer close(receiver)
 
 	requestJSON, err := json.Marshal(request)
 	if err != nil {
-		log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
 	req, err := http.NewRequest("POST", ChatEndpointURL, bytes.NewBuffer(requestJSON))
 	if err != nil {
-		log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
@@ -181,57 +182,58 @@ func getChatCompletionStream(request chatRequest, receiver chan string) error {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println(err)
+		logger.Println(err)
 		return err
 	}
-	log.Println(resp.Status)
+	logger.Println(resp.Status)
 
 	defer resp.Body.Close()
 
 	finishReason := ""
-	log.Println("Receiving chunks")
+	logger.Println("Receiving chunks")
 	var chatResponse chatResponseChunk
 	for finishReason != "stop" {
-		time.Sleep(1e9)
-		data := make([]byte, 8192)
+		data := make([]byte, 4096)
 		n, err := resp.Body.Read(data)
 		if err != nil && err != io.EOF {
-			log.Println("Error reading response body:", err)
+			fmt.Println("Error reading response body:", err)
 			return err
 		}
+		data = data[:n]
 
 		if n == 0 {
-			break // Reached end of the response stream
+			continue // no data
 		}
 
-		strData := string(data[:n])
-		log.Println(strData)
+		strData := string(data)
 		strDataSplit := strings.Split(strData, "data: ")
-		log.Println(strDataSplit)
+		content := make([]string, 0, len(strDataSplit))
 		for _, s := range strDataSplit {
-			n = len(s)
-			if n == 0 {
-				continue
-			}
-			log.Println(s)
-			err = json.Unmarshal([]byte(s[:n-2]), &chatResponse)
-			if err != nil {
-				log.Println("Error unmarshalling data:", err)
-				return err
-			}
-			log.Println(chatResponse)
-
-			for _, choice := range chatResponse.Choices {
-				log.Println(choice)
-				finishReason = choice.FinishReason
-				if finishReason == "stop" {
-					close(receiver)
-					return nil
+			if finishReason != "stop" {
+				n := len(s)
+				if n == 0 {
+					continue
 				}
-				receiver <- choice.Delta.Content
+				s = strings.TrimSuffix(s, "\n\n")
+				err = json.Unmarshal([]byte(s), &chatResponse)
+				if err != nil {
+					fmt.Println("Error unmarshalling data:", err, ". Data: ", s)
+					return err
+				}
+				for _, choice := range chatResponse.Choices {
+					if finishReason != "stop" {
+						finishReason = choice.FinishReason
+						content = append(content, choice.Delta.Content)
+					} else {
+						finishReason = "stop"
+						break
+					}
+				}
 			}
 		}
-
+		contentToSend := strings.Join(content, "")
+		fmt.Println(contentToSend)
+		receiver <- contentToSend
 	}
 	return nil
 }

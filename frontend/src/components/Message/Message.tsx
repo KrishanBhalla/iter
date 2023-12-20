@@ -7,9 +7,7 @@ interface MessageProps {
 
 const Message: FC<MessageProps> = ({msg}: MessageProps) => (
   
-  <div className="Message">
-    {msg}
-  </div>
+  <div className="Message">{msg}</div>
 );
 
 export default Message;
