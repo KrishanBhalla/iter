@@ -16,7 +16,7 @@ import (
 const (
 	hmacKey      = "secret-hmac-key"
 	userPwPepper = "secret-pepper"
-	port         = ":3000"
+	port         = ":8080"
 )
 
 func isProd() bool {
@@ -79,6 +79,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	log.Println("WebSocket Endpoint Hit")
 	conn, err := websocket.Upgrade(w, r)
 	if err != nil {
+		log.Println(err)
 		fmt.Fprintf(w, "%+V\n", err)
 	}
 	client := &websocket.Client{

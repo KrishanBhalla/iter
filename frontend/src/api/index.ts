@@ -1,4 +1,4 @@
-var socket = new WebSocket("ws://localhost:3000/ws")
+var socket = new WebSocket("ws://localhost:8080/ws")
 
 
 type Callback = (msg: MessageEvent<string>) => void

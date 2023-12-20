@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 )
 
 const (
@@ -44,7 +47,7 @@ func (service *GPT3) GetChatCompletion(message string) (string, error) {
 	if len(response.Choices) == 0 {
 		return "", fmt.Errorf("No messages returned")
 	}
-	return response.Choices[0].Message.Message, nil
+	return response.Choices[0].Message.Content, nil
 }
 
 func (service *GPT3) GetChatCompletionStream(message string, receiver chan string) error {
@@ -55,8 +58,8 @@ func (service *GPT3) GetChatCompletionStream(message string, receiver chan strin
 		SYSTEM_PROMPT,
 	}
 	messages[1] = chatMessage{USER_ROLE, message}
-
-	chatRequest := chatRequest{Model: LanguageModel, Messages: messages, Stream: false}
+	log.Println("Ready to get chat completion")
+	chatRequest := chatRequest{Model: LanguageModel, Messages: messages, Stream: true}
 	go getChatCompletionStream(chatRequest, receiver)
 	return nil
 }
@@ -112,7 +115,7 @@ type chatResponseStreamChoice struct {
 
 type chatMessage struct {
 	Role    string `json:"role"`
-	Message string `json:"message"`
+	Content string `json:"content"`
 }
 
 func getChatCompletion(request chatRequest) (*chatResponse, error) {
@@ -160,11 +163,13 @@ func getChatCompletionStream(request chatRequest, receiver chan string) error {
 
 	requestJSON, err := json.Marshal(request)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
 	req, err := http.NewRequest("POST", ChatEndpointURL, bytes.NewBuffer(requestJSON))
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -172,33 +177,61 @@ func getChatCompletionStream(request chatRequest, receiver chan string) error {
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+os.Getenv("OPENAI_API_KEY"))
+	req.Header.Set("Authorization", "Bearer "+"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")
 
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
+	log.Println(resp.Status)
+
+	defer resp.Body.Close()
+
 	finishReason := ""
-
-	var chatResponse chatResponse
+	log.Println("Receiving chunks")
+	var chatResponse chatResponseChunk
 	for finishReason != "stop" {
-		data := make([]byte, 1024)
-		_, err := resp.Body.Read(data)
-		if err != nil {
+		time.Sleep(1e9)
+		data := make([]byte, 8192)
+		n, err := resp.Body.Read(data)
+		if err != nil && err != io.EOF {
+			log.Println("Error reading response body:", err)
 			return err
 		}
 
-		err = json.Unmarshal(data, &chatResponse)
-		if err != nil {
-			return err
+		if n == 0 {
+			break // Reached end of the response stream
 		}
-		for _, choice := range chatResponse.Choices {
-			finishReason = choice.FinishReason
-			if finishReason == "stop" {
-				close(receiver)
-				return nil
+
+		strData := string(data[:n])
+		log.Println(strData)
+		strDataSplit := strings.Split(strData, "data: ")
+		log.Println(strDataSplit)
+		for _, s := range strDataSplit {
+			n = len(s)
+			if n == 0 {
+				continue
+			}
+			log.Println(s)
+			err = json.Unmarshal([]byte(s[:n-2]), &chatResponse)
+			if err != nil {
+				log.Println("Error unmarshalling data:", err)
+				return err
+			}
+			log.Println(chatResponse)
+
+			for _, choice := range chatResponse.Choices {
+				log.Println(choice)
+				finishReason = choice.FinishReason
+				if finishReason == "stop" {
+					close(receiver)
+					return nil
+				}
+				receiver <- choice.Delta.Content
 			}
 		}
+
 	}
 	return nil
 }
