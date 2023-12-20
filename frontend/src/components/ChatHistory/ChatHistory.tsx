@@ -21,6 +21,7 @@ const ChatHistory: FC<ChatHistoryProps> = ({lastMessage}) => {
       }
       setMessageHistory((prevHistory) => {
       let msgData = lastMessage.data.replaceAll(RegExp("\"", "g"), "")
+      console.log(msgData)
       let msg = {data: msgData, origin: lastMessage.origin}
       if (prevHistory.length === 0) {
         return [msg]

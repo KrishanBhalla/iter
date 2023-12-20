@@ -22,5 +22,5 @@ go.work
 # Environment file with secrets
 .env
 # badger files
-users/LOCK
-content/LOCK
+users/
+content/
