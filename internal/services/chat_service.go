@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 )
 
@@ -20,7 +19,7 @@ const (
 )
 
 type ChatService interface {
-	GetChatCompletion(message string) (string, error)
+	// GetChatCompletion(message string) (string, error)
 	GetChatCompletionStream(message string, receiver chan string) error
 }
 
@@ -32,27 +31,27 @@ var _ ChatService = &GPT3{}
 
 var messages = make([]chatMessage, 0)
 
-func (service *GPT3) GetChatCompletion(message string) (string, error) {
-	if len(messages) == 0 {
-		messages = append(messages, chatMessage{
-			SYSTEM_ROLE,
-			SYSTEM_PROMPT,
-		})
-	}
-	messages = append(messages, chatMessage{USER_ROLE, message})
+// func (service *GPT3) GetChatCompletion(message string) (string, error) {
+// 	if len(messages) == 0 {
+// 		messages = append(messages, chatMessage{
+// 			SYSTEM_ROLE,
+// 			SYSTEM_PROMPT,
+// 		})
+// 	}
+// 	messages = append(messages, chatMessage{USER_ROLE, message})
 
-	chatRequest := chatRequest{Model: LanguageModel, Messages: messages, Stream: false}
-	response, err := getChatCompletion(chatRequest, service.Logger)
-	if err != nil {
-		return "", err
-	}
-	if len(response.Choices) == 0 {
-		return "", fmt.Errorf("No messages returned")
-	}
-	msg := response.Choices[0].Message.Content
-	messages = append(messages, chatMessage{Role: SYSTEM_ROLE, Content: msg})
-	return msg, nil
-}
+// 	chatRequest := chatRequest{Model: LanguageModel, Messages: messages, Stream: false}
+// 	response, err := getChatCompletion(chatRequest, service.Logger)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	if len(response.Choices) == 0 {
+// 		return "", fmt.Errorf("No messages returned")
+// 	}
+// 	msg := response.Choices[0].Message.Content
+// 	messages = append(messages, chatMessage{Role: SYSTEM_ROLE, Content: msg})
+// 	return msg, nil
+// }
 
 func (service *GPT3) GetChatCompletionStream(message string, receiver chan string) error {
 
@@ -123,44 +122,44 @@ type chatMessage struct {
 	Content string `json:"content"`
 }
 
-func getChatCompletion(request chatRequest, logger *log.Logger) (*chatResponse, error) {
-	client := &http.Client{}
+// func getChatCompletion(request chatRequest, logger *log.Logger) (*chatResponse, error) {
+// 	client := &http.Client{}
 
-	requestJSON, err := json.Marshal(request)
-	if err != nil {
-		return nil, err
-	}
+// 	requestJSON, err := json.Marshal(request)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	req, err := http.NewRequest("POST", ChatEndpointURL, bytes.NewBuffer(requestJSON))
-	if err != nil {
-		return nil, err
-	}
+// 	req, err := http.NewRequest("POST", ChatEndpointURL, bytes.NewBuffer(requestJSON))
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+os.Getenv("OPENAI_API_KEY"))
+// 	req.Header.Set("Content-Type", "application/json")
+// 	req.Header.Set("Authorization", "Bearer "+os.Getenv("OPENAI_API_KEY"))
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+// 	resp, err := client.Do(req)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
+// 	body, err := io.ReadAll(resp.Body)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Response status %d, body %s", resp.StatusCode, body)
-	}
+// 	if resp.StatusCode != 200 {
+// 		return nil, fmt.Errorf("Response status %d, body %s", resp.StatusCode, body)
+// 	}
 
-	var chatResponse chatResponse
-	err = json.Unmarshal(body, &chatResponse)
-	if err != nil {
-		return nil, err
-	}
-	return &chatResponse, nil
-}
+// 	var chatResponse chatResponse
+// 	err = json.Unmarshal(body, &chatResponse)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &chatResponse, nil
+// }
 
 func getChatCompletionStream(request chatRequest, receiver chan string, logger *log.Logger) error {
 	client := &http.Client{}
