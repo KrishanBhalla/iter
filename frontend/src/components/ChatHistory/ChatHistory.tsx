@@ -6,32 +6,37 @@ interface ChatHistoryProps {
   lastMessage?: MessageEvent<string>
 }
 
+interface MessageHistory {
+  data: string,
+  origin: string
+}
+
 const ChatHistory: FC<ChatHistoryProps> = ({lastMessage}) => {
 
-  const [messageHistory, setMessageHistory] = useState<string[]>([])
-  const [messageOrigin, setMessageOrigin] = useState<string>("")
+  const [messageHistory, setMessageHistory] = useState<MessageHistory[]>([])
 
   useEffect(() => {
       if (lastMessage === undefined) {
         return
       }
-      setMessageOrigin(() => lastMessage.origin)
       setMessageHistory((prevHistory) => {
-      let msgData = lastMessage.data.replaceAll(RegExp("\"\\n$", "g"), "").replaceAll(RegExp("^\"", "g"), "")
-      if (messageOrigin === lastMessage.origin) {
-        let prevMessage = prevHistory.pop() || ""
-        prevMessage += msgData
+      let msgData = lastMessage.data.replaceAll(RegExp("\"", "g"), "")
+      let msg = {data: msgData, origin: lastMessage.origin}
+      if (prevHistory.length === 0) {
+        return [msg]
+      }
+      if (prevHistory[prevHistory.length-1].origin === lastMessage.origin) {
+        let prevMessage = prevHistory.pop() || {data: "", origin: ""}
+        prevMessage.data += msgData
         return [...prevHistory, prevMessage]
       }
-      return [...prevHistory, msgData]
+      return [...prevHistory, msg]
     })
-  }, [lastMessage, messageOrigin])
+  }, [lastMessage])
 
-  const messages = messageHistory.map((msg) => (
-    <Message msg={msg}></Message>
+  const messages = messageHistory.map((msg, index) => (
+    <Message key={index} msg={msg.data}></Message>
   ))
-  console.log(messages)
-  console.log(messageOrigin)
   return <div className="ChatHistory">
     {messages}
   </div>
