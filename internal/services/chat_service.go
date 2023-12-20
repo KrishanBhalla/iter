@@ -30,14 +30,16 @@ type GPT3 struct {
 
 var _ ChatService = &GPT3{}
 
-func (service *GPT3) GetChatCompletion(message string) (string, error) {
+var messages = make([]chatMessage, 0)
 
-	messages := make([]chatMessage, 2)
-	messages[0] = chatMessage{
-		SYSTEM_ROLE,
-		SYSTEM_PROMPT,
+func (service *GPT3) GetChatCompletion(message string) (string, error) {
+	if len(messages) == 0 {
+		messages = append(messages, chatMessage{
+			SYSTEM_ROLE,
+			SYSTEM_PROMPT,
+		})
 	}
-	messages[1] = chatMessage{USER_ROLE, message}
+	messages = append(messages, chatMessage{USER_ROLE, message})
 
 	chatRequest := chatRequest{Model: LanguageModel, Messages: messages, Stream: false}
 	response, err := getChatCompletion(chatRequest, service.Logger)
@@ -47,17 +49,20 @@ func (service *GPT3) GetChatCompletion(message string) (string, error) {
 	if len(response.Choices) == 0 {
 		return "", fmt.Errorf("No messages returned")
 	}
-	return response.Choices[0].Message.Content, nil
+	msg := response.Choices[0].Message.Content
+	messages = append(messages, chatMessage{Role: SYSTEM_ROLE, Content: msg})
+	return msg, nil
 }
 
 func (service *GPT3) GetChatCompletionStream(message string, receiver chan string) error {
 
-	messages := make([]chatMessage, 2)
-	messages[0] = chatMessage{
-		SYSTEM_ROLE,
-		SYSTEM_PROMPT,
+	if len(messages) == 0 {
+		messages = append(messages, chatMessage{
+			SYSTEM_ROLE,
+			SYSTEM_PROMPT,
+		})
 	}
-	messages[1] = chatMessage{USER_ROLE, message}
+	messages = append(messages, chatMessage{USER_ROLE, message})
 	service.Logger.Println("Ready to get chat completion")
 	chatRequest := chatRequest{Model: LanguageModel, Messages: messages, Stream: true}
 	go getChatCompletionStream(chatRequest, receiver, service.Logger)
@@ -154,7 +159,6 @@ func getChatCompletion(request chatRequest, logger *log.Logger) (*chatResponse, 
 	if err != nil {
 		return nil, err
 	}
-
 	return &chatResponse, nil
 }
 
@@ -193,7 +197,7 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 	logger.Println("Receiving chunks")
 	var chatResponse chatResponseChunk
 	for finishReason != "stop" {
-		data := make([]byte, 4096)
+		data := make([]byte, 8192)
 		n, err := resp.Body.Read(data)
 		if err != nil && err != io.EOF {
 			fmt.Println("Error reading response body:", err)
@@ -232,7 +236,9 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 			}
 		}
 		contentToSend := strings.Join(content, "")
+		// TODO: remove
 		fmt.Println(contentToSend)
+		messages = append(messages, chatMessage{Role: SYSTEM_ROLE, Content: contentToSend})
 		receiver <- contentToSend
 	}
 	return nil
