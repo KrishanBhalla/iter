@@ -4,15 +4,17 @@ import Header from './components/Header';
 import ChatInput from './components/ChatInput';
 import ChatHistory from './components/ChatHistory';
 import { connect, sendMsg } from "./api"
-import logo from './logo.svg';
+import { Message } from './types';
 import './App.css';
 
 function App() {
-  const [lastMessage, setLastMessage] = useState<MessageEvent<string>>()
+  const [lastMessage, setLastMessage] = useState<Message>()
 
   useEffect(() => {
-    const handleNewMessage = (msg: MessageEvent<string>) => {
-      setLastMessage(() => msg);
+    const handleNewMessage = (msg: Message) => {
+      setLastMessage(() => {
+        return {data: JSON.parse(msg.data), origin: "system"}
+      });
     };
     connect(handleNewMessage);
     return () => {};
@@ -22,7 +24,7 @@ function App() {
     if (event.key === 'Enter') {
       const target = event.target as HTMLInputElement
       sendMsg(target.value)
-      setLastMessage(() => new MessageEvent("message", {data: target.value, origin: "user"}))
+      setLastMessage(() => ({data: target.value, origin: "user"}))
       target.value = ""
       event.target = target
     }

@@ -4,7 +4,7 @@ import './Header.scss';
 interface HeaderProps {}
 
 const Header: FC<HeaderProps> = () => (
-  <div className="header">
+  <div className="Header">
       <h2>Iter</h2>
   </div>
 );

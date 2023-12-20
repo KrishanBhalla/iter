@@ -1,33 +1,30 @@
 import { FC, useState, useEffect } from 'react';
 import './ChatHistory.scss';
 import Message from "../Message/Message"
+import { Message as IMessage} from "../../types"
 
 interface ChatHistoryProps {
-  lastMessage?: MessageEvent<string>
+  lastMessage?: IMessage
 }
 
-interface MessageHistory {
-  data: string,
-  origin: string
-}
 
 const ChatHistory: FC<ChatHistoryProps> = ({lastMessage}) => {
 
-  const [messageHistory, setMessageHistory] = useState<MessageHistory[]>([])
+  const [messageHistory, setMessageHistory] = useState<IMessage[]>([])
 
   useEffect(() => {
       if (lastMessage === undefined) {
         return
       }
       setMessageHistory((prevHistory) => {
-      let msgData = lastMessage.data.replaceAll(RegExp("\"", "g"), "")
-      console.log(msgData)
+      let msgData = lastMessage.data
+  
       let msg = {data: msgData, origin: lastMessage.origin}
       if (prevHistory.length === 0) {
         return [msg]
       }
       if (prevHistory[prevHistory.length-1].origin === lastMessage.origin) {
-        let prevMessage = prevHistory.pop() || {data: "", origin: ""}
+        let prevMessage = prevHistory.pop() || {data: "", origin: "system"}
         prevMessage.data += msgData
         return [...prevHistory, prevMessage]
       }
@@ -36,9 +33,10 @@ const ChatHistory: FC<ChatHistoryProps> = ({lastMessage}) => {
   }, [lastMessage])
 
   const messages = messageHistory.map((msg, index) => (
-    <Message key={index} msg={msg.data}></Message>
+    <Message key={index} msg={msg.data} role={msg.origin}/>
   ))
   return <div className="ChatHistory">
+    <Message msg={"Where would you like to go?"} role={"system"}/>
     {messages}
   </div>
 }

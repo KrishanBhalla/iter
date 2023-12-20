@@ -1,6 +1,7 @@
 import { FC, KeyboardEvent } from 'react';
 import './ChatInput.scss';
 
+
 interface ChatInputProps {
   send: (event: KeyboardEvent<HTMLInputElement>) => void
 }

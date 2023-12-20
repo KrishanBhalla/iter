@@ -35,11 +35,7 @@ func (c *Client) Read() {
 		message := Message{Sender: c.ID, Type: messageType, Body: string(p)}
 
 		receiver := make(chan string, 10)
-		err = chatService.GetChatCompletionStream(message.Body, receiver)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+		go chatService.GetChatCompletionStream(message.Body, receiver)
 		for message := range receiver {
 			if err := c.Conn.WriteJSON(message); err != nil {
 				log.Println(err)
