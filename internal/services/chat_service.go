@@ -7,11 +7,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
 const (
-	LanguageModel   = "gpt-3.5-turbo-1106"
 	ChatEndpointURL = "https://api.openai.com/v1/chat/completions"
 	SYSTEM_ROLE     = "system"
 	USER_ROLE       = "user"
@@ -23,15 +23,16 @@ type ChatService interface {
 	GetChatCompletionStream(message string, receiver chan string) error
 }
 
-type GPT3 struct {
-	Logger *log.Logger
+type LanguageModel struct {
+	Logger    *log.Logger
+	ModelName string
 }
 
-var _ ChatService = &GPT3{}
+var _ ChatService = &LanguageModel{}
 
 var messages = make([]chatMessage, 0)
 
-// func (service *GPT3) GetChatCompletion(message string) (string, error) {
+// func (service *LanguageModel) GetChatCompletion(message string) (string, error) {
 // 	if len(messages) == 0 {
 // 		messages = append(messages, chatMessage{
 // 			SYSTEM_ROLE,
@@ -53,7 +54,7 @@ var messages = make([]chatMessage, 0)
 // 	return msg, nil
 // }
 
-func (service *GPT3) GetChatCompletionStream(message string, receiver chan string) error {
+func (service *LanguageModel) GetChatCompletionStream(message string, receiver chan string) error {
 
 	if len(messages) == 0 {
 		messages = append(messages, chatMessage{
@@ -63,7 +64,7 @@ func (service *GPT3) GetChatCompletionStream(message string, receiver chan strin
 	}
 	messages = append(messages, chatMessage{USER_ROLE, message})
 	service.Logger.Println("Ready to get chat completion")
-	chatRequest := chatRequest{Model: LanguageModel, Messages: messages, Stream: true}
+	chatRequest := chatRequest{Model: service.ModelName, Messages: messages, Stream: true}
 	go getChatCompletionStream(chatRequest, receiver, service.Logger)
 	return nil
 }
@@ -181,7 +182,7 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 	req.Header.Set("Accept", "text/event-stream")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+"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")
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("OPENAI_API_KEY"))
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -196,15 +197,13 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 	logger.Println("Receiving chunks")
 	var chatResponse chatResponseChunk
 	for finishReason != "stop" {
-		data := make([]byte, 8192)
-		n, err := resp.Body.Read(data)
+		data, err := io.ReadAll(resp.Body)
 		if err != nil && err != io.EOF {
 			fmt.Println("Error reading response body:", err)
 			return err
 		}
-		data = data[:n]
 
-		if n == 0 {
+		if len(data) == 0 {
 			continue // no data
 		}
 
@@ -235,8 +234,6 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 			}
 		}
 		contentToSend := strings.Join(content, "")
-		// TODO: remove
-		fmt.Println(contentToSend)
 		messages = append(messages, chatMessage{Role: SYSTEM_ROLE, Content: contentToSend})
 		receiver <- contentToSend
 	}

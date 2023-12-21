@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -24,6 +25,11 @@ func isProd() bool {
 }
 
 func main() {
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		panic(err)
+	}
 
 	r := mux.NewRouter()
 

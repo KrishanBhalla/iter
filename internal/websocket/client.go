@@ -25,7 +25,7 @@ func (c *Client) Read() {
 		c.Conn.Close()
 	}()
 	logger := log.New(bufio.NewWriter(os.Stdout), "Chat Service: ", log.LstdFlags)
-	chatService := services.GPT3{Logger: logger}
+	chatService := services.LanguageModel{Logger: logger, ModelName: services.GPT3}
 	for {
 		messageType, p, err := c.Conn.ReadMessage()
 		if err != nil {

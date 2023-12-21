@@ -21,7 +21,7 @@ type contentService struct {
 // to the db.
 func NewContentService(db *badger.DB, similarityThreshold float64) ContentService {
 
-	cdb := &contentDB{db, similarityThreshold, &services.Ada002{}}
+	cdb := &contentDB{db, similarityThreshold, &services.EmbeddingModel{ModelName: services.ADA002}}
 	return &contentService{
 		ContentDB: cdb,
 	}
