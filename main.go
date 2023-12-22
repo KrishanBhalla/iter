@@ -15,9 +15,10 @@ import (
 )
 
 const (
-	hmacKey      = "secret-hmac-key"
-	userPwPepper = "secret-pepper"
-	port         = ":8080"
+	hmacKey             = "secret-hmac-key"
+	userPwPepper        = "secret-pepper"
+	similarityThreshold = 0.8
+	port                = ":8080"
 )
 
 func isProd() bool {
@@ -37,7 +38,7 @@ func main() {
 
 	services, err := models.NewServices(
 		models.WithUser(hmacKey, userPwPepper),
-		models.WithContent(0.8),
+		models.WithContent(similarityThreshold),
 	)
 	defer services.Close()
 	// err = services.DestructiveReset()
