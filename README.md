@@ -4,27 +4,19 @@
 
 ### Progress and TODOs:
 
+#### TODOs
 * Backend
   * User Login
-  * Embedding Service
-  * Middleware
-  * Database
-  * Chat Service
-  * Chat Service (Streaming)
-  * Scrape Content
-  * Embed Content
-  * Routing
+  * Contextual Chat via embeddings
   * Integration with booking service (if I stick with this)
-  * Geolocation
-  * Instagram search?
-  * Stateful chat
+  * Geolocation - Mapbox Geocoding API gives me 100k tokens per month
   * Map generation
-  * Saving the itinerary
+  * Saving the itinerary to a doc of some sort / Gannt chart.
  
 * Frontend
   * Home Page
   * Log In Page
   * Itinerary Creator (given destination, wants, time)
-  * Destination suggestion
-  * Blogging functionality - let people submit their own itineraries and vote on them
+  * Destination suggestion - limit to those we have context on.
   * Images
+  * Itinerary rating / feedback
