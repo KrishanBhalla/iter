@@ -1,7 +1,9 @@
 package models
 
 import (
+	"crypto/md5"
 	"encoding/json"
+	"io"
 
 	"github.com/KrishanBhalla/iter/internal/helpers"
 	"github.com/KrishanBhalla/iter/internal/services"
@@ -13,12 +15,15 @@ import (
 // the source URL, the content, and the embedding
 type Content struct {
 	URL       string    `json:"url"`
+	Country   string    `json:"country"`
+	Location  string    `json:"location"`
 	Content   string    `json:"content"`
 	Embedding []float64 `json:"embedding"`
 }
 
 type ContentDB interface {
-	ByEmbedding(embedding []float64) ([]Content, error)
+	ByCountryAndSimilarity(country string, embedding []float64) ([]Content, error)
+	BySimilarity(embedding []float64) ([]Content, error)
 
 	// Methods for altering contents
 	Create(content *Content) error
@@ -36,14 +41,41 @@ type contentDB struct {
 	embeddingService    services.EmbeddingService
 }
 
-// ByEmbedding finds the closest pieces of content to an embedded query
-func (cdb *contentDB) ByEmbedding(embedding []float64) ([]Content, error) {
-	var content []Content
-	err := getAll(cdb.db, content)
+// ByCountryAndSimilarity finds the closest pieces of content to an embedded query
+func (cdb *contentDB) ByCountryAndSimilarity(country string, embedding []float64) ([]Content, error) {
+	var allContent map[string]Content
+	err := get(cdb.db, country, allContent)
 	if err != nil {
 		return nil, err
 	}
 
+	var content = make([]Content, 0)
+	for _, c := range allContent {
+		content = append(content, c)
+	}
+
+	return cdb.bySimilarity(content, embedding)
+}
+
+// BySimilarity finds the closest pieces of content to an embedded query
+func (cdb *contentDB) BySimilarity(embedding []float64) ([]Content, error) {
+	var allContent []map[string]Content
+	err := getAll(cdb.db, allContent)
+	if err != nil {
+		return nil, err
+	}
+
+	var content = make([]Content, 0)
+	for _, c := range allContent {
+		for _, v := range c {
+			content = append(content, v)
+		}
+	}
+
+	return cdb.bySimilarity(content, embedding)
+}
+
+func (cdb *contentDB) bySimilarity(content []Content, embedding []float64) ([]Content, error) {
 	result := make([]Content, 0)
 	for _, c := range content {
 		similarity, err := helpers.EmbeddingCosineSimilarity(c.Embedding, embedding)
@@ -72,9 +104,18 @@ func (cdb *contentDB) Update(content *Content) error {
 		content.Embedding = embedding
 	}
 
-	err := cdb.db.Update(func(txn *badger.Txn) error {
+	existingContent := make(map[string]Content)
+	err := get(cdb.db, content.Country, existingContent)
+	if err != nil && err != badger.ErrKeyNotFound {
+		return err
+	}
 
-		contentBytes, err := json.Marshal(&content)
+	err = cdb.db.Update(func(txn *badger.Txn) error {
+
+		textHash := md5.New()
+		io.WriteString(textHash, content.Content)
+		existingContent[content.URL+" "+string(textHash.Sum(nil))] = *content
+		contentBytes, err := json.Marshal(existingContent)
 		if err != nil {
 			return err
 		}
