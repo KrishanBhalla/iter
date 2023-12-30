@@ -33,6 +33,22 @@ func get(db *badger.DB, key string, dst interface{}) error {
 	return json.Unmarshal(data, dst)
 }
 
+func keyStrings(db *badger.DB, dst *[]string) error {
+	err := db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+			k := item.Key()
+			*dst = append(*dst, string(k))
+		}
+		return nil
+	})
+	return err
+}
+
 func getAll(db *badger.DB, dst interface{}) error {
 	data := make([]byte, 0)
 	err := db.View(func(txn *badger.Txn) error {

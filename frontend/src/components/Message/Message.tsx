@@ -7,9 +7,11 @@ interface MessageProps {
   role: string
 }
 
-const Message: FC<MessageProps> = ({msg, role}: MessageProps) => (
-  
-  <div className={"Message-" + role}>{msg}</div>
-);
+const Message: FC<MessageProps> = ({msg, role}: MessageProps) => {
+  if (role === "system" || role === "user") {
+    return <div className={"Message-" + role}>{msg}</div>
+  }
+  return <div></div>
+};
 
 export default Message;

@@ -19,11 +19,14 @@ type Content struct {
 	Location  string    `json:"location"`
 	Content   string    `json:"content"`
 	Embedding []float64 `json:"embedding"`
+	Latitude  float64   `json:"latitude"`
+	Longitude float64   `json:"longitude"`
 }
 
 type ContentDB interface {
 	ByCountryAndSimilarity(country string, embedding []float64) ([]Content, error)
 	BySimilarity(embedding []float64) ([]Content, error)
+	Countries() ([]string, error)
 
 	// Methods for altering contents
 	Create(content *Content) error
@@ -55,6 +58,16 @@ func (cdb *contentDB) ByCountryAndSimilarity(country string, embedding []float64
 	}
 
 	return cdb.bySimilarity(content, embedding)
+}
+
+// Countries finds the closest pieces of content to an embedded query
+func (cdb *contentDB) Countries() ([]string, error) {
+	keys := make([]string, 0)
+	err := keyStrings(cdb.db, &keys)
+	if err != nil {
+		return nil, err
+	}
+	return keys, nil
 }
 
 // BySimilarity finds the closest pieces of content to an embedded query
@@ -119,7 +132,7 @@ func (cdb *contentDB) Update(content *Content) error {
 		if err != nil {
 			return err
 		}
-		err = txn.Set([]byte(content.URL), contentBytes)
+		err = txn.Set([]byte(content.Country), contentBytes)
 		return err
 	})
 	return err

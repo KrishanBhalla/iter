@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -196,18 +197,21 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 	finishReason := ""
 	logger.Println("Receiving chunks")
 	var chatResponse chatResponseChunk
+	data := make([]byte, 8192)
+	reader := bufio.NewReader(resp.Body)
 	for finishReason != "stop" {
-		data, err := io.ReadAll(resp.Body)
+		n, err := reader.Read(data)
 		if err != nil && err != io.EOF {
 			fmt.Println("Error reading response body:", err)
 			return err
 		}
 
-		if len(data) == 0 {
+		if n == 0 {
+			fmt.Println("No Data")
 			continue // no data
 		}
 
-		strData := string(data)
+		strData := string(data[:n])
 		strDataSplit := strings.Split(strData, "data: ")
 		content := make([]string, 0, len(strDataSplit))
 		for _, s := range strDataSplit {
@@ -234,6 +238,7 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 			}
 		}
 		contentToSend := strings.Join(content, "")
+		fmt.Println(contentToSend)
 		messages = append(messages, chatMessage{Role: SYSTEM_ROLE, Content: contentToSend})
 		receiver <- contentToSend
 	}

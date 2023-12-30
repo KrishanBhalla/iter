@@ -1,15 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/KrishanBhalla/iter/internal/websocket"
 	"github.com/KrishanBhalla/iter/models"
-	"github.com/KrishanBhalla/iter/rand"
+
+	// "github.com/gocolly/colly"
+	// "github.com/gocolly/colly/queue"
 	"github.com/google/uuid"
-	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -44,11 +46,11 @@ func main() {
 	// err = services.DestructiveReset()
 	must(err)
 
-	setupRoutes(r)
+	setupRoutes(r, *services)
 
 	// Middleware
-	b, err := rand.Bytes(32)
-	csrfMw := csrf.Protect(b, csrf.Secure(isProd()))
+	// b, err := rand.Bytes(32)
+	// csrfMw := csrf.Protect(b, csrf.Secure(isProd()))
 	// userMw := middleware.User{
 	// 	UserService: services.User,
 	// }
@@ -59,11 +61,11 @@ func main() {
 	// Listen And Serve
 	fmt.Println("Listening on", port)
 	// Apply this to every request
-	err = http.ListenAndServe(port, csrfMw(r))
+	err = http.ListenAndServe(port, r) //csrfMw(r))
 	must(err)
 }
 
-func setupRoutes(r *mux.Router) {
+func setupRoutes(r *mux.Router, services models.Services) {
 	// Websocket
 	r.PathPrefix("/ws").HandlerFunc(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		serveWs(w, r)
@@ -76,7 +78,22 @@ func setupRoutes(r *mux.Router) {
 	// r.Handle("/contact", staticC.Contact)
 
 	// // Users
-	// r.Handle("/signup", usersC.SignupView).Methods("GET")
+	r.HandleFunc("/countries", func(w http.ResponseWriter, r *http.Request) {
+		countries, err := services.Content.Countries()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		jsonData, err := json.Marshal(countries)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonData)
+	}).Methods("GET")
 	// r.HandleFunc("/signup", usersC.CreateOrLogin).Methods("POST")
 	// r.HandleFunc("/logout", requireUserMw.ApplyFn(usersC.Logout)).Methods("POST")
 	// r.HandleFunc("/cookietest", usersC.CookieTest).Methods("GET")

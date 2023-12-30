@@ -36,7 +36,6 @@ const ChatHistory: FC<ChatHistoryProps> = ({lastMessage}) => {
     <Message key={index} msg={msg.data} role={msg.origin}/>
   ))
   return <div className="ChatHistory">
-    <Message msg={"Where would you like to go?"} role={"system"}/>
     {messages}
   </div>
 }
