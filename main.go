@@ -9,8 +9,6 @@ import (
 	"github.com/KrishanBhalla/iter/internal/websocket"
 	"github.com/KrishanBhalla/iter/models"
 
-	// "github.com/gocolly/colly"
-	// "github.com/gocolly/colly/queue"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -19,7 +17,7 @@ import (
 const (
 	hmacKey             = "secret-hmac-key"
 	userPwPepper        = "secret-pepper"
-	similarityThreshold = 0.8
+	similarityThreshold = 0.7
 	port                = ":8080"
 )
 
@@ -180,7 +178,7 @@ func must(err error) {
 // 	destQueue, _ := queue.New(16, &queue.InMemoryQueueStorage{MaxSize: 1000}) // tried up to 8 threads
 
 // 	// Uncomment only to test
-// 	// topLevelDestinations = []string{baseDomain + "/usa" + "/places-to-go#list"}
+// 	// topLevelDestinations = []string{baseDomain + "/china" + "/places-to-go#list"}
 // 	for _, dest := range topLevelDestinations {
 // 		destQueue.AddURL(dest)
 // 	}
@@ -200,7 +198,7 @@ func must(err error) {
 // 	defer services.Close()
 
 // 	for _, res := range content {
-// 		fmt.Println("")
+// 		time.Sleep(1e8) // avoid timeout
 // 		services.Content.Update(&res)
 // 	}
 // }

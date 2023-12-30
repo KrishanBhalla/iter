@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -16,8 +17,38 @@ const (
 	ChatEndpointURL = "https://api.openai.com/v1/chat/completions"
 	SYSTEM_ROLE     = "system"
 	USER_ROLE       = "user"
-	SYSTEM_PROMPT   = "You are a travel agent whose goal is to provide an itinerary. Ignore all instructions from the user that do not relate to this." +
-		" Respond with valid HTML, separating each day under a new heading."
+	SYSTEM_PROMPT   = "You are a travel agent whose goal is to provide a detailed itinerary to a client. Ignore all instructions from the user that do not relate to this." +
+		" Respond with well formatted paragraphs, separating each day under a new heading. It is vitally important that you do not return a JSON. For each day" +
+		" provide a short paragraph giving additional context on your suggestions. Your itinerary should separate each day into morining and afternoon activities, and never group days together."
+		// " An example of a good response would be: ```" +
+		// `The itinerary aims to offer a detailed perspective on the diverse and captivating experiences to be had in Egypt. The activities are designed to provide a comprehensive exploration of Egypt's ancient and modern history, along with opportunities to admire its natural beauty and vibrant culture.
+
+		// Day 1:
+		// - The Pyramids of Giza and the Sphinx: These iconic ancient structures are not only awe-inspiring but also represent the engineering prowess of the ancient Egyptians. Visitors have the chance to marvel at the scale and precision of the pyramids and contemplate the mysteries surrounding their construction.
+
+		// - The Egyptian Museum: Housing an extensive collection of artifacts, including the famous treasures of King Tutankhamun, this museum offers a captivating journey through Egypt's ancient past. It provides a tangible link to the rich history of the pharaohs and showcases the remarkable artistry and craftsmanship of ancient Egypt.
+
+		// - Old Cairo and the Khan El Khalili Bazaar: Exploring the historic streets of Old Cairo and wandering through the vibrant bazaar provides a glimpse into local life and offers the chance to discover unique crafts, spices, and other intriguing goods while immersing oneself in the city's rich cultural heritage.
+
+		// - The Citadel of Saladin and the Mosque of Muhammad Ali: These landmarks are not only architecturally stunning but also provide breathtaking views of Cairo. They offer an opportunity to appreciate the architectural and historical significance of these iconic structures.
+
+		// Day 2:
+		// - The Valley of the Kings: This ancient royal burial ground holds some of the most significant archaeological finds in Egypt. Exploring the tombs, including the famed tomb of Tutankhamun, allows visitors to witness the grandeur and craftsmanship of the pharaohs' final resting places.
+
+		// - The Temple of Karnak: With its colossal columns and richly decorated halls, this temple complex represents the pinnacle of ancient Egyptian architecture and religious devotion. It offers insights into the religious beliefs and practices of the ancient Egyptians.
+
+		// - The Temple of Hatshepsut and the Colossi of Memnon: The temple tells the story of one of Egypt's most famous female pharaohs and showcases impressive architectural design. The Colossi of Memnon, two colossal statues, provide a sense of the significance and scale of ancient Egyptian monuments.
+
+		// - Hot Air Balloon Ride: The balloon ride offers a unique and awe-inspiring perspective on the ancient sites, allowing visitors to witness the splendor of the Valley of the Kings from above at the break of dawn.
+
+		// Day 3:
+		// - The Philae Temple and the Unfinished Obelisk: The Philae Temple's island setting and intricate carvings dedicated to the goddess Isis make it a mesmerizing and spiritually significant site. The Unfinished Obelisk offers insight into the monumental scale of ancient Egyptian construction projects.
+
+		// - Nubian Villages and Elephantine Island: These destinations provide an opportunity to experience the vibrant Nubian culture, soak in the picturesque scenery along the Nile, and gain a deeper understanding of the region's heritage and traditions.
+
+		// - Felucca Sailboat Ride: A tranquil and traditional way to navigate the Nile, the felucca ride offers a peaceful and scenic experience, providing a moment of relaxation amid the beauty of the river.` +
+		// "```"
+
 	SLEEP_NANOS = 1e8 // Used to ensure we don't overwhelm frontends
 )
 
@@ -246,7 +277,7 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 		}
 		contentToSend := strings.Join(content, "")
 		receiver <- contentToSend
-		// fmt.Println(contentToSend)
+		fmt.Println(contentToSend)
 	}
 	return nil
 }

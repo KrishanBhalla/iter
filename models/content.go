@@ -63,7 +63,6 @@ func (cdb *contentDB) ByCountryAndSimilarity(country string, embedding []float64
 	for _, c := range allContent {
 		content = append(content, c)
 	}
-
 	return cdb.bySimilarity(content, embedding)
 }
 
@@ -139,7 +138,7 @@ func (cdb *contentDB) Update(content *Content) error {
 
 		textHash := md5.New()
 		io.WriteString(textHash, content.Content)
-		existingContent[content.URL+" "+string(textHash.Sum(nil))] = *content
+		existingContent[content.URL+" "+string(textHash.Sum([]byte{}))] = *content
 		contentBytes, err := json.Marshal(existingContent)
 		if err != nil {
 			return err

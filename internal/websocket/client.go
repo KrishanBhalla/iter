@@ -84,13 +84,12 @@ func (c *Client) Read(contentService models.ContentService) {
 				return
 			}
 			contextString := string(contextBytes)
-			log.Println(contextString)
 			chatMessages = append(
 				chatMessages,
 				services.ChatMessage{
 					Content: "I want to visit " + dest +
-						". When creating an itinerary, make use of the following expert travel content, provided in JSON form. " +
-						"Do not provide any links to webpages unless specifically asked." + contextString,
+						". When creating an itinerary, make use of the following travel content as background information. " +
+						"Do not provide any URLs unless specifically asked later." + contextString,
 					Role: services.USER_ROLE,
 				})
 		}
