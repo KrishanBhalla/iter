@@ -2,6 +2,9 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
+	"strings"
 
 	"github.com/dgraph-io/badger"
 )
@@ -50,7 +53,12 @@ type userDB struct {
 // else it returns the user associated with the email
 func (udb *userDB) ByEmail(email string) (*User, error) {
 	var user User
-	err := get(udb.db, email, user)
+	data, err := get(udb.db, email)
+	dec := json.NewDecoder(strings.NewReader(string(data)))
+	err = dec.Decode(&user)
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("%s:  %s", "Failed to retrieve unmarshal", err.Error())
+	}
 	return safeReturnUser(&user, err)
 }
 
@@ -58,12 +66,22 @@ func (udb *userDB) ByEmail(email string) (*User, error) {
 // else it returns the user associated with the rememberHash
 func (udb *userDB) ByRemember(rememberHash string) (*User, error) {
 	var email string
-	err := get(udb.db, rememberHash, email)
+	data, err := get(udb.db, rememberHash)
+	dec := json.NewDecoder(strings.NewReader(string(data)))
+	err = dec.Decode(&email)
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("%s:  %s", "Failed to retrieve unmarshal", err.Error())
+	}
 	if err != nil {
 		return nil, err
 	}
 	var user User
-	err = get(udb.db, email, user)
+	data, err = get(udb.db, email)
+	dec = json.NewDecoder(strings.NewReader(string(data)))
+	err = dec.Decode(&user)
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("%s:  %s", "Failed to retrieve unmarshal", err.Error())
+	}
 	return safeReturnUser(&user, err)
 }
 
@@ -104,7 +122,12 @@ func (udb *userDB) Delete(email string) error {
 		return err
 	}
 	var user User
-	err = get(udb.db, email, user)
+	data, err := get(udb.db, email)
+	dec := json.NewDecoder(strings.NewReader(string(data)))
+	err = dec.Decode(&user)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("%s:  %s", "Failed to retrieve unmarshal", err.Error())
+	}
 	if err != nil {
 		return err
 	}

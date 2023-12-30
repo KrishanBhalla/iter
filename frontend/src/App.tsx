@@ -8,6 +8,7 @@ import { Websocket as WS, Countries } from "./api"
 import { Message as MessageType } from './types';
 import './App.css';
 import CountryDropdown from "./components/CountryDropdown";
+import { MESSAGE_TYPE_CHAT, VALID_MESSAGE_TYPE } from "./api/websocket";
 
 
 function App() {
@@ -33,10 +34,10 @@ function App() {
     return () => {};
   }, []); // Empty dependency array ensures the effect runs only once on mount
 
-  const send = (event: React.KeyboardEvent<HTMLInputElement>, role: string = "user") => {
+  const send = (event: React.KeyboardEvent<HTMLInputElement>, role: string = "user", messageType: VALID_MESSAGE_TYPE = MESSAGE_TYPE_CHAT) => {
     if (event.key === 'Enter') {
       const target = event.target as HTMLInputElement
-      WS.sendMsg(target.value)
+      WS.sendMsg(target.value, messageType)
       setLastMessage(() => ({data: target.value, origin: role}))
       target.value = ""
       event.target = target
@@ -52,10 +53,14 @@ function App() {
   return (
     <div className="App">
     <Header />
-    <Message msg={"Where would you like to go?"} role={"system"}/>
+    <Message msg={"Where would you like to go?"} role={"system"} isVisible={true}/>
     <CountryDropdown countries={countries} send={send} isDisabled={isChatVisible}/>
+    <Message msg={
+      "What do you like to do? The more context you provide, the better the itinerary."
+      + " Feel free to include the length of time for your trip and optionally the dates."
+      } role={"system"} isVisible={isChatVisible}/>
     <ChatHistory lastMessage={lastMessage}/>
-    <ChatInput send={send} isVisible={isChatVisible}/>
+    <ChatInput send={send} isVisible={isChatVisible} lastMessage={lastMessage}/>
   </div>
   );
 }

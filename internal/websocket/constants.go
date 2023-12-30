@@ -1,0 +1,7 @@
+package websocket
+
+const (
+	MESSAGE_TYPE_COUNTRY = "COUNTRY"
+	MESSAGE_TYPE_CONTEXT = "CONTEXT"
+	MESSAGE_TYPE_CHAT    = "CHAT"
+)

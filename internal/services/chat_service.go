@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -16,12 +15,13 @@ const (
 	ChatEndpointURL = "https://api.openai.com/v1/chat/completions"
 	SYSTEM_ROLE     = "system"
 	USER_ROLE       = "user"
-	SYSTEM_PROMPT   = "You are a travel agent whose goal is to provide an itinerary. Ignore all instructions from the user that do not relate to this."
+	SYSTEM_PROMPT   = "You are a travel agent whose goal is to provide an itinerary. Ignore all instructions from the user that do not relate to this." +
+		" Respond in well-paragraphed text, separating each day under a new heading."
 )
 
 type ChatService interface {
 	// GetChatCompletion(message string) (string, error)
-	GetChatCompletionStream(message string, receiver chan string) error
+	GetChatCompletionStream(message *[]ChatMessage, receiver chan string) error
 }
 
 type LanguageModel struct {
@@ -30,8 +30,6 @@ type LanguageModel struct {
 }
 
 var _ ChatService = &LanguageModel{}
-
-var messages = make([]chatMessage, 0)
 
 // func (service *LanguageModel) GetChatCompletion(message string) (string, error) {
 // 	if len(messages) == 0 {
@@ -55,24 +53,30 @@ var messages = make([]chatMessage, 0)
 // 	return msg, nil
 // }
 
-func (service *LanguageModel) GetChatCompletionStream(message string, receiver chan string) error {
-
-	if len(messages) == 0 {
-		messages = append(messages, chatMessage{
-			SYSTEM_ROLE,
-			SYSTEM_PROMPT,
-		})
+func (service *LanguageModel) GetChatCompletionStream(messages *[]ChatMessage, receiver chan string) error {
+	if messages == nil {
+		log.Println("Chat Service (GetChatCompletionStream): No messages sent to the LanguageModel, returning early.")
+		return nil
 	}
-	messages = append(messages, chatMessage{USER_ROLE, message})
+	defaultMessage := ChatMessage{
+		SYSTEM_ROLE,
+		SYSTEM_PROMPT,
+	}
+
+	if len(*messages) == 0 {
+		*messages = append(*messages, defaultMessage)
+	} else if len(*messages) == 1 {
+		*messages = []ChatMessage{defaultMessage, (*messages)[0]}
+	}
 	service.Logger.Println("Ready to get chat completion")
-	chatRequest := chatRequest{Model: service.ModelName, Messages: messages, Stream: true}
+	chatRequest := chatRequest{Model: service.ModelName, Messages: *messages, Stream: true}
 	go getChatCompletionStream(chatRequest, receiver, service.Logger)
 	return nil
 }
 
 type chatRequest struct {
 	Model    string        `json:"model"`
-	Messages []chatMessage `json:"messages"`
+	Messages []ChatMessage `json:"messages"`
 	Stream   bool          `json:"stream"`
 	// ResponseFormat chatResponseFormat `json:"response_format"`
 }
@@ -108,18 +112,18 @@ type tokenUsage struct {
 type chatResponseChoice struct {
 	FinishReason string      `json:"finish_reason"`
 	Index        int         `json:"index"`
-	Message      chatMessage `json:"message"`
+	Message      ChatMessage `json:"message"`
 	LogProbs     float64     `json:"logprobs"`
 }
 
 type chatResponseStreamChoice struct {
 	FinishReason string      `json:"finish_reason"`
 	Index        int         `json:"index"`
-	Delta        chatMessage `json:"delta"`
+	Delta        ChatMessage `json:"delta"`
 	LogProbs     float64     `json:"logprobs"`
 }
 
-type chatMessage struct {
+type ChatMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
@@ -202,12 +206,12 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 	for finishReason != "stop" {
 		n, err := reader.Read(data)
 		if err != nil && err != io.EOF {
-			fmt.Println("Error reading response body:", err)
+			log.Println("Error reading response body:", err)
 			return err
 		}
 
 		if n == 0 {
-			fmt.Println("No Data")
+			log.Println("No Data")
 			continue // no data
 		}
 
@@ -223,7 +227,7 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 				s = strings.TrimSuffix(s, "\n\n")
 				err = json.Unmarshal([]byte(s), &chatResponse)
 				if err != nil {
-					fmt.Println("Error unmarshalling data:", err, ". Data: ", s)
+					log.Println("Error unmarshalling data:", err, ". Data: ", s)
 					return err
 				}
 				for _, choice := range chatResponse.Choices {
@@ -238,8 +242,6 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 			}
 		}
 		contentToSend := strings.Join(content, "")
-		fmt.Println(contentToSend)
-		messages = append(messages, chatMessage{Role: SYSTEM_ROLE, Content: contentToSend})
 		receiver <- contentToSend
 	}
 	return nil

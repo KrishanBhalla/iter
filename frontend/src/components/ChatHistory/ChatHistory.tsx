@@ -33,7 +33,7 @@ const ChatHistory: FC<ChatHistoryProps> = ({lastMessage}) => {
   }, [lastMessage])
 
   const messages = messageHistory.map((msg, index) => (
-    <Message key={index} msg={msg.data} role={msg.origin}/>
+    <Message key={index} msg={msg.data} role={msg.origin} isVisible={true}/>
   ))
   return <div className="ChatHistory">
     {messages}

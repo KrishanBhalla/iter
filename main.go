@@ -19,7 +19,7 @@ import (
 const (
 	hmacKey             = "secret-hmac-key"
 	userPwPepper        = "secret-pepper"
-	similarityThreshold = 0.8
+	similarityThreshold = 0.5
 	port                = ":8080"
 )
 
@@ -68,7 +68,7 @@ func main() {
 func setupRoutes(r *mux.Router, services models.Services) {
 	// Websocket
 	r.PathPrefix("/ws").HandlerFunc(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		serveWs(w, r)
+		serveWs(w, r, &services)
 	}))
 
 	// // Handlers ---------
@@ -100,7 +100,7 @@ func setupRoutes(r *mux.Router, services models.Services) {
 
 }
 
-func serveWs(w http.ResponseWriter, r *http.Request) {
+func serveWs(w http.ResponseWriter, r *http.Request, services *models.Services) {
 
 	log.Println("WebSocket Endpoint Hit")
 	conn, err := websocket.Upgrade(w, r)
@@ -112,7 +112,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		ID:   uuid.NewString(),
 		Conn: conn,
 	}
-	client.Read()
+	client.Read(services.Content)
 }
 
 func must(err error) {
