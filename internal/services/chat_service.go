@@ -204,6 +204,9 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 	client := &http.Client{}
 	defer close(receiver)
 
+	noDataCounter := 0
+	backoffMultiplier := 10
+
 	requestJSON, err := json.Marshal(request)
 	if err != nil {
 		logger.Println(err)
@@ -245,7 +248,13 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 		}
 
 		if n == 0 {
+			if noDataCounter >= 5 {
+				receiver <- "No Data for more than the maximum retries."
+				return nil
+			}
 			log.Println("No Data")
+			time.Sleep(time.Duration(backoffMultiplier * SLEEP_NANOS))
+			noDataCounter += 1
 			continue // no data
 		}
 
