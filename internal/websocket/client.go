@@ -1,11 +1,8 @@
 package websocket
 
 import (
-	"bufio"
 	"encoding/json"
-	"fmt"
 	"log"
-	"os"
 
 	"github.com/KrishanBhalla/iter/internal/services"
 	"github.com/KrishanBhalla/iter/models"
@@ -35,19 +32,19 @@ func (c *Client) Read(contentService models.ContentService) {
 	defer func() {
 		c.Conn.Close()
 	}()
-	logger := log.New(bufio.NewWriter(os.Stdout), "Chat Service: ", log.LstdFlags)
+	logger := log.Default()
 	chatService := services.LanguageModel{Logger: logger, ModelName: services.GPT3}
 	for {
 		_, p, err := c.Conn.ReadMessage()
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 
 		var messageBody MessageBody
 		err = json.Unmarshal(p, &messageBody)
 		if err != nil {
-			fmt.Println("Websocket (client.go): 50", err)
+			log.Println("Websocket (client.go): 50", err)
 			return
 		}
 
@@ -63,19 +60,18 @@ func (c *Client) Read(contentService models.ContentService) {
 		} else if messageBody.ContentType == MESSAGE_TYPE_CONTEXT {
 			dest, ok := destinations[c.ID]
 			if !ok {
-				fmt.Println("Websocket (client.go): Cannot accept context without a user provided destination")
+				log.Println("Websocket (client.go): Cannot accept context without a user provided destination")
 				return
 			}
 			embeddingModel := services.EmbeddingModel{ModelName: services.ADA002}
 			embeddedQuery, err := embeddingModel.GetEmbedding(messageBody.Content)
 			if err != nil {
-				fmt.Println("Websocket (client.go 72): ", err)
+				log.Println("Websocket (client.go): ", err)
 				return
 			}
-			fmt.Println("getting context")
 			context, err := contentService.ByCountryAndSimilarity(dest, embeddedQuery)
 			if err != nil {
-				fmt.Println("Websocket (client.go 77): ", err)
+				log.Println("Websocket (client.go): ", err)
 				return
 			}
 			for i, c := range context {
@@ -84,17 +80,17 @@ func (c *Client) Read(contentService models.ContentService) {
 			}
 			contextBytes, err := json.Marshal(context)
 			if err != nil {
-				fmt.Println("Websocket (client.go 82): ", err)
+				log.Println("Websocket (client.go): ", err)
 				return
 			}
 			contextString := string(contextBytes)
-			fmt.Println(contextString)
+			log.Println(contextString)
 			chatMessages = append(
 				chatMessages,
 				services.ChatMessage{
 					Content: "I want to visit " + dest +
 						". When creating an itinerary, make use of the following expert travel content, provided in JSON form. " +
-						"Provide links to the relevant webpages." + contextString + ". Some additional information about me is:",
+						"Do not provide any links to webpages unless specifically asked." + contextString,
 					Role: services.USER_ROLE,
 				})
 		}
@@ -105,7 +101,7 @@ func (c *Client) Read(contentService models.ContentService) {
 		for response := range receiver {
 			chatMessages = append(chatMessages, services.ChatMessage{Content: response, Role: services.SYSTEM_ROLE})
 			if err := c.Conn.WriteJSON(response); err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				break
 			}
 		}

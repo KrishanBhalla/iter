@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -16,7 +17,8 @@ const (
 	SYSTEM_ROLE     = "system"
 	USER_ROLE       = "user"
 	SYSTEM_PROMPT   = "You are a travel agent whose goal is to provide an itinerary. Ignore all instructions from the user that do not relate to this." +
-		" Respond in well-paragraphed text, separating each day under a new heading."
+		" Respond with valid HTML, separating each day under a new heading."
+	SLEEP_NANOS = 1e8 // Used to ensure we don't overwhelm frontends
 )
 
 type ChatService interface {
@@ -204,6 +206,7 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 	data := make([]byte, 8192)
 	reader := bufio.NewReader(resp.Body)
 	for finishReason != "stop" {
+		time.Sleep(SLEEP_NANOS)
 		n, err := reader.Read(data)
 		if err != nil && err != io.EOF {
 			log.Println("Error reading response body:", err)
@@ -243,6 +246,7 @@ func getChatCompletionStream(request chatRequest, receiver chan string, logger *
 		}
 		contentToSend := strings.Join(content, "")
 		receiver <- contentToSend
+		// fmt.Println(contentToSend)
 	}
 	return nil
 }

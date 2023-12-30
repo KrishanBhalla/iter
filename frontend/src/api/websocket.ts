@@ -34,7 +34,6 @@ export class Websocket {
 
     private static msgToJson(msg: string, msgType: VALID_MESSAGE_TYPE): string {
         const json = JSON.stringify({content: msg, contentType: msgType})
-        console.log(json)
         return json
     }
 }

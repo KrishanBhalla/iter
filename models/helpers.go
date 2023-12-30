@@ -23,7 +23,7 @@ func get(db *badger.DB, key string) ([]byte, error) {
 		}
 		err = item.Value(func(val []byte) error {
 			// This func with val would only be called if item.Value encounters no error.
-			copy(data, val)
+			data = append(data, val...)
 			return nil
 		})
 		return err
@@ -33,28 +33,6 @@ func get(db *badger.DB, key string) ([]byte, error) {
 		return nil, err
 	}
 
-	return data, nil
-}
-
-func get2(db *badger.DB, key string) ([]byte, error) {
-
-	var data = make([]byte, 0)
-	err := db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte(key))
-		if err != nil {
-			return err
-		}
-		err = item.Value(func(val []byte) error {
-			// This func with val would only be called if item.Value encounters no error.
-			copy(data, val)
-			return nil
-		})
-		return err
-	})
-
-	if err != nil {
-		return nil, err
-	}
 	return data, nil
 }
 

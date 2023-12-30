@@ -51,16 +51,13 @@ func (cdb *contentDB) ByCountryAndSimilarity(country string, embedding []float64
 	var allContent map[string]Content
 	data, err := get(cdb.db, country)
 	if err != nil {
-		fmt.Println(err)
 		return nil, fmt.Errorf("%s:  %s", "Failed to retrieve content", err.Error())
 	}
-	fmt.Println(string(data))
 	dec := json.NewDecoder(strings.NewReader(string(data)))
 	err = dec.Decode(&allContent)
 	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("%s:  %s", "Failed to retrieve unmarshal", err.Error())
 	}
-	fmt.Println(allContent)
 
 	var content = make([]Content, 0)
 	for _, c := range allContent {
@@ -104,7 +101,6 @@ func (cdb *contentDB) bySimilarity(content []Content, embedding []float64) ([]Co
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println(similarity, c.Content)
 		if similarity > cdb.similarityThreshold {
 			result = append(result, content...)
 		}
