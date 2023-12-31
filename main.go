@@ -17,7 +17,7 @@ import (
 const (
 	hmacKey             = "secret-hmac-key"
 	userPwPepper        = "secret-pepper"
-	similarityThreshold = 0.7
+	similarityThreshold = 0.9
 	port                = ":8080"
 )
 

@@ -101,6 +101,8 @@ func (service *LanguageModel) GetChatCompletionStream(messages *[]ChatMessage, r
 	} else if len(*messages) == 1 {
 		*messages = []ChatMessage{defaultMessage, (*messages)[0]}
 	}
+
+	fmt.Println(*messages)
 	service.Logger.Println("Ready to get chat completion")
 	chatRequest := chatRequest{Model: service.ModelName, Messages: *messages, Stream: true}
 	go getChatCompletionStream(chatRequest, receiver, service.Logger)
